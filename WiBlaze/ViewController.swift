@@ -11,6 +11,19 @@ import WebKit
 
 let debug = true
 
+
+extension String {
+    func escapeString() -> String {
+        var newString = self.replacingOccurrences(of: "\"", with: "\"\"")
+        
+        if newString.contains(",") || newString.contains("\n") {
+            newString = String(format: "\"%@\"", newString)
+        }
+
+        return newString
+    }
+}
+
 class ViewController: UIViewController, WKNavigationDelegate, WKUIDelegate, UITextFieldDelegate, UIScrollViewDelegate, CircleMenuDelegate {
 
     // UI Elements
@@ -59,25 +72,278 @@ class ViewController: UIViewController, WKNavigationDelegate, WKUIDelegate, UITe
         webView.customUserAgent = Browser.getUserAgent()            // Set Browser UserAgent
         // WebView Configuration
         let config = webView.configuration
+        
         config.applicationNameForUserAgent = Browser.name           // Set Client Name
         config.preferences.javaScriptEnabled = true                 // Enable JavaScript
         // ScrollView Setup
         webView.scrollView.delegate = self
         webView.scrollView.isScrollEnabled = true                   // Enable Scroll
-        webView.scrollView.keyboardDismissMode = .onDrag            // Hide Keyboard on WebView Drag
+        webView.scrollView.keyboardDismissMode = .onDrag
+        // Hide Keyboard on WebView Drag
+        
+        let contentController = self.webView.configuration.userContentController
+        contentController.add(self, name: "removeCookieMessageHandler")
+        contentController.add(self, name: "executeScriptMessageHandler")
+        contentController.add(self, name: "updateHeadersMessageHandler")
 
         // Load Homepage
-        webView.load(Settings.getLaunchURL())
+        
+        load(Settings.getLaunchURL())
         
         //progressBar.progress = 0
         //progressBar.alpha = 0
     }
+    
+    func load(_ url: String) {
+        self.webView.load(url)
+    }
+    
+    func reload() {
+        self.webView.reload()
+    }
+    
+    func getMyJavaScript() -> String {
+           if let filepath = Bundle.main.path(forResource: "common", ofType: "js") {
+               do {
+                   return try String(contentsOfFile: filepath)
+               } catch {
+                   return ""
+               }
+           } else {
+              return ""
+           }
+       }
+    
+    func getSetupJS() -> String {
+        if let filepath = Bundle.main.path(forResource: "extensionApi", ofType: "js") {
+            do {
+                return try String(contentsOfFile: filepath)
+            } catch {
+                return ""
+            }
+        } else {
+           return ""
+        }
+    }
+    
+    func getScriptsAsOne() -> String {
+        if let filepath1 = Bundle.main.path(forResource: "common", ofType: "js"),
+           let filepath2 = Bundle.main.path(forResource: "sites", ofType: "js"),
+           let filepath3 = Bundle.main.path(forResource: "background", ofType: "js") {
+            do {
+                return try
+                """
+                \(String(contentsOfFile: filepath1))
+
+                \(String(contentsOfFile: filepath2))
+
+                \(String(contentsOfFile: filepath3))
+                """
+            } catch {
+                return ""
+            }
+        } else {
+           return ""
+        }
+    }
+    
+    func getManifestString() -> String {
+        if let filepath = Bundle.main.path(forResource: "manifest", ofType: "json") {
+            do {
+                return try String(contentsOfFile: filepath)
+            } catch {
+                return ""
+            }
+        } else {
+           return ""
+        }
+    }
+    
+    func getScript(name: String, type: String) -> String {
+        if let filepath = Bundle.main.path(forResource: name, ofType: type) {
+            do {
+                return try String(contentsOfFile: filepath)
+            } catch {
+                return ""
+            }
+        } else {
+           return ""
+        }
+    }
+    
+    func setupBrowserObject(urlString: String, cookiesJsonString: String, completion: @escaping((Error?) -> Void)) {
+        
+        let manifest = self.getManifestString()
+ 
+        let jsString = """
+          \(getSetupJS())
+          var browser;
+          var runtime;
+            runtime = new Runtime(\(manifest));
+            var tabs = new Tabs([{url:"\(urlString.escapeString())"}]);
+            var webRequest = new WebRequest();
+            var cookies = new Cookies(\(cookiesJsonString));
+            console.log("cookies", cookies);
+            var shouldRunPluginSetup = false;
+            window.shouldRunPluginSetup = shouldRunPluginSetup
+            if (typeof browser === "undefined") {
+                            browser = new Browser(runtime, tabs, webRequest, cookies);
+                            window.browser = browser;
+                            console.log("BROWSER SETUP");
+                window.shouldRunPluginSetup = true;
+            }
+        """
+        
+        let pluginScripts = """
+                if (shouldRunPluginSetup) {
+                  //  \(getScriptsAsOne())
+                };
+        """
+        self.webView.evaluateJavaScript(jsString) { (result, error) in
+            if error != nil {
+                let s = jsString
+                print(error)
+            }
+            self.webView.evaluateJavaScript(pluginScripts) { (result, error) in
+                if error != nil {
+                    let s = jsString
+                    print(error)
+                }
+                completion(error)
+            }
+            
+        }
+        
+    }
+    
+    func getCookiesJson(completion: @escaping (String) -> Void) {
+        WKWebsiteDataStore.default().httpCookieStore.getAllCookies { (cookies) in
+            var jsonString = "["
+            for (index, cookie) in cookies.enumerated() {
+                let dict = [
+                    "name": cookie.name,
+                    "value": cookie.value,
+                    "secure": cookie.isSecure,
+                    "path": cookie.path,
+                    "domain": cookie.domain
+                ] as [String : Any]
+                
+                do {
+                    let jsonData = try JSONSerialization.data(withJSONObject: dict, options: .withoutEscapingSlashes)
+                    let str = String(decoding: jsonData, as: UTF8.self)
+                    jsonString = jsonString + str
+                    if index != cookies.count - 1 {
+                        jsonString = jsonString + ", "
+                    } else {
+                        jsonString = jsonString + "]"
+                    }
+                } catch {
+                    print(error.localizedDescription)
+                }
+            }
+            completion(jsonString)
+        }
+    }
+    
+    func jsonToString(json: AnyObject){
+            do {
+                let data1 =  try JSONSerialization.data(withJSONObject: json, options: JSONSerialization.WritingOptions.prettyPrinted) // first of all convert json to the data
+                let convertedString = String(data: data1, encoding: String.Encoding.utf8) // the data will be converted to the string
+                print(convertedString) // <-- here is ur string
+
+            } catch let myJSONError {
+                print(myJSONError)
+            }
+
+        }
     
     func webView(_ webView: WKWebView, didStartProvisionalNavigation navigation: WKNavigation!) {
         Debug.log("webView didStartProvisionalNavigation")
         let urlString = webView.url?.absoluteString
         alignText()
         updateTextField(pretty: false)
+    }
+    
+    func webView(_ webView: WKWebView, decidePolicyFor navigationAction: WKNavigationAction, decisionHandler: @escaping (WKNavigationActionPolicy) -> Void) {
+        let cookiesJson = getCookiesJson { [weak self] (json) in
+            guard let `self`  = self else { return }
+            self.setupBrowserObject(urlString: webView.url!.absoluteString, cookiesJsonString: json) { (error) in
+                
+                if error != nil {
+                    decisionHandler(.cancel)
+                    return
+                }
+                let onBefore = """
+                    if (!browser) {debugger;}
+                   browser.runtime.onInstalled.fire({reason:"install"});
+                   browser.webRequest.onBeforeRequest.fire({url: "\(webView.url!.absoluteString)"});
+                    if (typeof headerResults === "undefined") {
+                        let headerResults = {};
+                    }
+                    
+                """
+                self.webView.evaluateJavaScript(onBefore) { (result, error) in
+                    if let err = error {
+                        print(err)
+                    }
+                    
+                    self.webView.evaluateJavaScript("window.browser.webRequest.onBeforeSendHeaders.fire({requestHeaders: [], url: \"\(webView.url!.absoluteString)\"});") { (result, error) in
+                        if let err = error {
+                            print(err)
+                            decisionHandler(.cancel)
+                            return
+                        }
+                        if let res = result as? [[String:[[String:String]]]], res.count > 0,
+                           let headers = res[0]["requestHeaders"], headers.count > 0  {
+                            print(headers)
+                            for header in headers {
+                                if let name = header["name"] {
+                                    if navigationAction.request.httpMethod != "GET" || navigationAction.request.value(forHTTPHeaderField: name) != nil {
+                                                // not a GET or already a custom request - continue
+                                                decisionHandler(.allow)
+                                                return
+                                            }
+                                }
+                                
+                            }
+                            
+                            decisionHandler(.cancel)
+                            self.requestWithHeaders(navigationAction: navigationAction, headers: headers)
+                        } else if let res = result as? [[String: [String:AnyObject]]], res.count > 0,
+                            let cancel = res[0]["cancel"] as? Bool {
+                            
+                            if cancel {
+                                decisionHandler(.cancel)
+                            } else {
+                                decisionHandler(.allow)
+                            }
+                                
+                        } else {
+                            decisionHandler(.allow)
+                        }
+                        
+                        
+                    }
+//                    self.webView.load(url)
+//                    decisionHandler(.allow)
+                }
+                
+            }
+        }
+    }
+    
+    func requestWithHeaders(navigationAction: WKNavigationAction, headers: [[String:String]]) {
+        var req:URLRequest = navigationAction.request;
+        for header in headers {
+            if let key = header["name"], let value = header["value"] {
+                req.addValue(value, forHTTPHeaderField: key);
+            } else {
+                print("should not be here")
+            }
+            
+        }
+        
+        webView.load(req);
     }
     
     func webView(_ webView: WKWebView, didCommit navigation: WKNavigation!) {
@@ -112,6 +378,18 @@ class ViewController: UIViewController, WKNavigationDelegate, WKUIDelegate, UITe
         
         Settings.save(Live.fullURL, forKey: Keys.lastSessionURL)
         resize(urlString!)
+        
+        let didFinish = """
+            if (!window.browser) { debugger; }
+            console.log(window.browser);
+            window.browser.webRequest.onCompleted.fire({url: "\(urlString!)"});
+        """
+      
+        self.webView.evaluateJavaScript(didFinish) { (result, error) in
+            if error != nil {
+                print(error)
+            }
+        }
         
     }
     
@@ -158,11 +436,11 @@ class ViewController: UIViewController, WKNavigationDelegate, WKUIDelegate, UITe
     // MARK:- Menu Functions
     /// Load homepage in WebView
     func loadHomepage() {
-        webView.load(Settings.getHomepage())
+        load(Settings.getHomepage())
     }
     /// Reload current WebView URL
     func refresh() {
-        webView.reload()
+        reload()
     }
     /// Add page to favourite
     func favouritePage() {
@@ -261,7 +539,7 @@ class ViewController: UIViewController, WKNavigationDelegate, WKUIDelegate, UITe
     func textFieldShouldReturn(_ textField: UITextField) -> Bool {
         let url = Query.getLoadable(textField.text!)
         updateTextField(pretty: false)   // TEMP: NEEDED?
-        webView.load(url)
+        load(url.absoluteString)
         textField.resignFirstResponder()
         return true
     }
@@ -415,6 +693,58 @@ extension UIViewController {
     var navBarHeight: CGFloat {
         return (view.window?.windowScene?.statusBarManager?.statusBarFrame.height ?? 0.0) +
             (self.navigationController?.navigationBar.frame.height ?? 0.0)
+    }
+}
+
+extension ViewController: WKScriptMessageHandler{
+    func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
+        guard let dict = message.body as? [String : AnyObject] else {
+            return
+        }
+        
+        switch message.name {
+        case "executeScriptMessageHandler":
+            if let obj = dict["message"] as? String {
+                if let script = obj.toJSON() as? [String: AnyObject] {
+                    if let name  = script["file"] as? String {
+                        let splitted = name.split(separator: ".")
+                        let src = getScript(name: String(splitted[0]) as String, type: String(splitted[1]) as String)
+                        self.webView.evaluateJavaScript(src) { (result, error) in
+                            if error != nil {
+                                print(String(splitted[0]))
+                                print(error)
+                            }
+                        }
+                    }
+                }
+                
+            }
+            
+        case "removeCookieMessageHandler":
+            if let obj = dict["message"] as? String {
+                
+                
+            }
+            
+        case "updateHeadersMessageHandler":
+            if let obj = dict["message"] as? String {
+                if let headers = obj.toJSON() as? [[String: AnyObject]] {
+                    print(headers)
+                }
+            }
+        default:
+            break
+            
+        }
+
+        print("in handler:\(message.name)")
+    }
+}
+
+extension String {
+    func toJSON() -> Any? {
+        guard let data = self.data(using: .utf8, allowLossyConversion: false) else { return nil }
+        return try? JSONSerialization.jsonObject(with: data, options: .mutableContainers)
     }
 }
 

@@ -7,6 +7,14 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		2B30D38726329503007BB868 /* common.js in Resources */ = {isa = PBXBuildFile; fileRef = 2B30D38626329503007BB868 /* common.js */; };
+		2B30D38A2632CA57007BB868 /* extensionApi.js in Resources */ = {isa = PBXBuildFile; fileRef = 2B30D3892632CA57007BB868 /* extensionApi.js */; };
+		2B30D38D2632CDC6007BB868 /* subject.js in Resources */ = {isa = PBXBuildFile; fileRef = 2B30D38C2632CDC6007BB868 /* subject.js */; };
+		2B30D39026342D38007BB868 /* manifest.json in Resources */ = {isa = PBXBuildFile; fileRef = 2B30D38F26342D38007BB868 /* manifest.json */; };
+		2B30D3932634910A007BB868 /* sites.js in Resources */ = {isa = PBXBuildFile; fileRef = 2B30D3922634910A007BB868 /* sites.js */; };
+		2B30D3962634915F007BB868 /* background.js in Resources */ = {isa = PBXBuildFile; fileRef = 2B30D3952634915F007BB868 /* background.js */; };
+		2B30D3992634918D007BB868 /* contentScript.js in Resources */ = {isa = PBXBuildFile; fileRef = 2B30D3982634918D007BB868 /* contentScript.js */; };
+		2B30D39C26369839007BB868 /* test.js in Resources */ = {isa = PBXBuildFile; fileRef = 2B30D39B26369839007BB868 /* test.js */; };
 		C2194A4624C09F6F009280C4 /* Keys.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2194A4224C09F6F009280C4 /* Keys.swift */; };
 		C2194A4724C09F6F009280C4 /* Settings.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2194A4324C09F6F009280C4 /* Settings.swift */; };
 		C2194A4824C09F6F009280C4 /* DefaultsManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2194A4424C09F6F009280C4 /* DefaultsManager.swift */; };
@@ -39,6 +47,14 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		2B30D38626329503007BB868 /* common.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; path = common.js; sourceTree = "<group>"; };
+		2B30D3892632CA57007BB868 /* extensionApi.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; path = extensionApi.js; sourceTree = "<group>"; };
+		2B30D38C2632CDC6007BB868 /* subject.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; path = subject.js; sourceTree = "<group>"; };
+		2B30D38F26342D38007BB868 /* manifest.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = manifest.json; sourceTree = "<group>"; };
+		2B30D3922634910A007BB868 /* sites.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; path = sites.js; sourceTree = "<group>"; };
+		2B30D3952634915F007BB868 /* background.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; path = background.js; sourceTree = "<group>"; };
+		2B30D3982634918D007BB868 /* contentScript.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; path = contentScript.js; sourceTree = "<group>"; };
+		2B30D39B26369839007BB868 /* test.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; path = test.js; sourceTree = "<group>"; };
 		C2194A4224C09F6F009280C4 /* Keys.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Keys.swift; sourceTree = "<group>"; };
 		C2194A4324C09F6F009280C4 /* Settings.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Settings.swift; sourceTree = "<group>"; };
 		C2194A4424C09F6F009280C4 /* DefaultsManager.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = DefaultsManager.swift; sourceTree = "<group>"; };
@@ -117,6 +133,14 @@
 		C2A437AC24BDF1860057E294 = {
 			isa = PBXGroup;
 			children = (
+				2B30D3922634910A007BB868 /* sites.js */,
+				2B30D38F26342D38007BB868 /* manifest.json */,
+				2B30D39B26369839007BB868 /* test.js */,
+				2B30D3952634915F007BB868 /* background.js */,
+				2B30D38C2632CDC6007BB868 /* subject.js */,
+				2B30D3982634918D007BB868 /* contentScript.js */,
+				2B30D3892632CA57007BB868 /* extensionApi.js */,
+				2B30D38626329503007BB868 /* common.js */,
 				C2A437B724BDF1860057E294 /* WiBlaze */,
 				C2A437B624BDF1860057E294 /* Products */,
 				C2A437CC24BDF55A0057E294 /* Frameworks */,
@@ -289,8 +313,16 @@
 			buildActionMask = 2147483647;
 			files = (
 				C2A437C524BDF1880057E294 /* LaunchScreen.storyboard in Resources */,
+				2B30D39026342D38007BB868 /* manifest.json in Resources */,
+				2B30D38D2632CDC6007BB868 /* subject.js in Resources */,
+				2B30D3932634910A007BB868 /* sites.js in Resources */,
+				2B30D3962634915F007BB868 /* background.js in Resources */,
+				2B30D3992634918D007BB868 /* contentScript.js in Resources */,
+				2B30D39C26369839007BB868 /* test.js in Resources */,
+				2B30D38726329503007BB868 /* common.js in Resources */,
 				C2A437C224BDF1880057E294 /* Assets.xcassets in Resources */,
 				C2A437C024BDF1860057E294 /* Main.storyboard in Resources */,
+				2B30D38A2632CA57007BB868 /* extensionApi.js in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
